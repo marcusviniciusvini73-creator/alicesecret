@@ -832,6 +832,22 @@
     .stat-item { min-width: 50%; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .floating-cta { bottom: 16px; right: 16px; font-size: 11px; padding: 14px 20px; }
   }
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(8,6,8,.92);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)}
+  .modal-overlay.hidden{display:none}
+  .modal-box{background:var(--dark-2);border:1px solid rgba(200,0,60,.4);border-radius:4px;padding:48px 40px;max-width:420px;width:100%;text-align:center;position:relative}
+  .modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer}
+  .modal-title{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--light);margin-bottom:8px}
+  .modal-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+  .modal-loading{font-size:14px;color:var(--muted);padding:40px 0}
+  .modal-qr{background:#fff;border-radius:4px;padding:16px;display:inline-block;margin-bottom:20px}
+  .modal-qr img{width:200px;height:200px;display:block}
+  .modal-pix-label{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--red-hot);margin-bottom:10px}
+  .modal-pix-code{background:var(--dark-3);border:1px solid rgba(200,0,60,.2);border-radius:3px;padding:12px 16px;font-size:11px;color:var(--muted);word-break:break-all;margin-bottom:14px;text-align:left;cursor:pointer}
+  .btn-copy{width:100%;background:linear-gradient(135deg,var(--red),var(--red-hot));color:#fff;font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:16px;border:none;border-radius:2px;cursor:pointer;margin-bottom:14px}
+  .modal-note{font-size:11px;color:var(--faint);line-height:1.6}
+  .modal-error{font-size:14px;color:#ff6b6b;padding:20px 0}
+
 </style>
 </head>
 <body>
@@ -1006,7 +1022,7 @@
         <li><span class="check"></span>Suporte e atendimento direto</li>
       </ul>
 
-      <a href="SEU_LINK_DE_PAGAMENTO_AQUI" class="btn-buy">
+      <a href="#" class="btn-buy" onclick="abrirPix(); return false;">
         🔓 Assinar agora — R$17,90
       </a>
 
@@ -1073,6 +1089,42 @@
 
 <!-- FLOATING CTA -->
 <a href="#pricing" class="floating-cta">🔓 Assinar VIP</a>
+
+
+<div class="modal-overlay hidden" id="modalPix">
+  <div class="modal-box">
+    <button class="modal-close" onclick="fecharPix()">x</button>
+    <div class="modal-title">Pagamento via PIX</div>
+    <p class="modal-sub">Escaneie o QR Code ou copie o codigo abaixo</p>
+    <div id="modalConteudo"><div class="modal-loading">Gerando seu PIX...</div></div>
+  </div>
+</div>
+<script>
+async function abrirPix(){
+  var m=document.getElementById('modalPix');
+  m.classList.remove('hidden');
+  document.getElementById('modalConteudo').innerHTML='<div class="modal-loading">Gerando seu PIX...</div>';
+  try{
+    var res=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'}});
+    var data=await res.json();
+    var qr=data.qr_code_url||data.qrcode_image||(data.pix&&data.pix.qrcode_image)||null;
+    var code=data.pix_code||data.qr_code||data.copy_paste||(data.pix&&data.pix.qr_code)||null;
+    var html='';
+    if(qr) html+='<div class="modal-qr"><img src="'+qr+'" alt="QR PIX"></div>';
+    if(code) html+='<div class="modal-pix-label">Codigo PIX (clique para copiar)</div><div class="modal-pix-code" id="pixcode">'+code+'</div><button class="btn-copy" onclick="copiarPix()">Copiar codigo PIX</button>';
+    html+='<div class="modal-note">Apos o pagamento entraremos em contato para liberar seu acesso ao grupo VIP.</div>';
+    if(!qr&&!code) html='<div class="modal-error">Resposta: '+JSON.stringify(data)+'</div>';
+    document.getElementById('modalConteudo').innerHTML=html;
+  }catch(e){
+    document.getElementById('modalConteudo').innerHTML='<div class="modal-error">Erro: '+e.message+'</div>';
+  }
+}
+function fecharPix(){document.getElementById('modalPix').classList.add('hidden');}
+function copiarPix(){var c=document.getElementById('pixcode');if(c)navigator.clipboard.writeText(c.innerText).then(function(){alert('Codigo PIX copiado!');});}
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('modalPix').addEventListener('click',function(e){if(e.target===this)fecharPix();});
+});
+</script>
 
 </body>
 </html>
